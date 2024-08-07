@@ -1,5 +1,5 @@
-import { useState, useEffect } from "react";
-import { Cat, Heart, Info, Paw, Star, Moon, Sun, HelpCircle } from "lucide-react";
+import { useState, useEffect, useRef } from "react";
+import { Cat, Heart, Info, Paw, Star, Moon, Sun, HelpCircle, Camera, Share2 } from "lucide-react";
 import { motion, AnimatePresence, useScroll, useTransform } from "framer-motion";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -10,6 +10,8 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Progress } from "@/components/ui/progress";
+import { Input } from "@/components/ui/input";
+import { toPng } from 'html-to-image';
 
 const catBreeds = [
   { name: "Siamese", description: "Vocal and social cats known for their distinctive color points.", image: "https://upload.wikimedia.org/wikipedia/commons/2/25/Siam_lilacpoint.jpg", personality: "Talkative, intelligent, and affectionate", origin: "Thailand" },
@@ -56,9 +58,12 @@ const Index = () => {
   const [quizStarted, setQuizStarted] = useState(false);
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
   const [score, setScore] = useState(0);
+  const [catName, setCatName] = useState("");
+  const [showNameCard, setShowNameCard] = useState(false);
   const { toast } = useToast();
   const { scrollYProgress } = useScroll();
   const opacity = useTransform(scrollYProgress, [0, 0.5], [1, 0]);
+  const cardRef = useRef(null);
 
   useEffect(() => {
     const interval = setInterval(() => {
@@ -105,6 +110,38 @@ const Index = () => {
     }
   };
 
+  const handleNameSubmit = (e) => {
+    e.preventDefault();
+    if (catName.trim()) {
+      setShowNameCard(true);
+      toast({
+        title: "Welcome!",
+        description: `Nice to meet you, ${catName}!`,
+      });
+    }
+  };
+
+  const handleShareCard = async () => {
+    if (cardRef.current === null) {
+      return;
+    }
+    
+    try {
+      const dataUrl = await toPng(cardRef.current, { cacheBust: true });
+      const link = document.createElement('a');
+      link.download = `${catName}'s-cat-card.png`;
+      link.href = dataUrl;
+      link.click();
+    } catch (err) {
+      console.error(err);
+      toast({
+        title: "Oops!",
+        description: "There was an error generating your cat card.",
+        variant: "destructive",
+      });
+    }
+  };
+
   return (
     <div className={`min-h-screen ${isDarkMode ? 'bg-gray-900 text-white' : 'bg-gradient-to-b from-purple-100 to-pink-100'} transition-colors duration-300`}>
       <motion.div
@@ -121,16 +158,52 @@ const Index = () => {
           >
             <Cat className="mr-4 h-16 w-16" /> Feline Fascination
           </motion.h1>
-          <div className="flex items-center space-x-2">
-            <Sun className="h-6 w-6" />
-            <Switch
-              checked={isDarkMode}
-              onCheckedChange={setIsDarkMode}
-              id="dark-mode-toggle"
-            />
-            <Moon className="h-6 w-6" />
+          <div className="flex items-center space-x-4">
+            <form onSubmit={handleNameSubmit} className="flex items-center">
+              <Input
+                type="text"
+                placeholder="Enter your cat's name"
+                value={catName}
+                onChange={(e) => setCatName(e.target.value)}
+                className="mr-2"
+              />
+              <Button type="submit">Submit</Button>
+            </form>
+            <div className="flex items-center space-x-2">
+              <Sun className="h-6 w-6" />
+              <Switch
+                checked={isDarkMode}
+                onCheckedChange={setIsDarkMode}
+                id="dark-mode-toggle"
+              />
+              <Moon className="h-6 w-6" />
+            </div>
           </div>
         </div>
+
+        {showNameCard && (
+          <motion.div
+            initial={{ opacity: 0, scale: 0.8 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ duration: 0.5 }}
+            className="mb-8"
+          >
+            <Card ref={cardRef} className="bg-gradient-to-r from-purple-400 to-pink-400 text-white p-6 rounded-lg shadow-lg">
+              <CardHeader>
+                <CardTitle className="text-3xl font-bold">{catName}'s Cat Card</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-xl mb-4">Welcome to the fascinating world of cats, {catName}!</p>
+                <p className="text-lg">You're purr-fect just the way you are!</p>
+              </CardContent>
+              <div className="mt-4 flex justify-end">
+                <Button onClick={handleShareCard} className="bg-white text-purple-600 hover:bg-purple-100">
+                  <Share2 className="mr-2 h-4 w-4" /> Share Card
+                </Button>
+              </div>
+            </Card>
+          </motion.div>
+        )}
 
         <motion.div
           initial={{ opacity: 0, scale: 0.8 }}
@@ -288,6 +361,31 @@ const Index = () => {
             )}
           </CardContent>
         </Card>
+
+        <Dialog>
+          <DialogTrigger asChild>
+            <Button className="mb-8 bg-purple-600 hover:bg-purple-700">
+              <Camera className="mr-2 h-4 w-4" /> Cat Photo Booth
+            </Button>
+          </DialogTrigger>
+          <DialogContent className="sm:max-w-[425px]">
+            <DialogHeader>
+              <DialogTitle>Cat Photo Booth</DialogTitle>
+              <DialogDescription>
+                Upload a photo of your cat and we'll add some fun effects!
+              </DialogDescription>
+            </DialogHeader>
+            <div className="grid gap-4 py-4">
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label htmlFor="cat-photo" className="text-right">
+                  Photo
+                </Label>
+                <Input id="cat-photo" type="file" accept="image/*" className="col-span-3" />
+              </div>
+            </div>
+            <Button type="submit">Apply Effects</Button>
+          </DialogContent>
+        </Dialog>
 
         <motion.p 
           className="text-xl italic text-center mt-8 text-purple-700 dark:text-purple-300"
