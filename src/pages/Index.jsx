@@ -1,18 +1,22 @@
 import { useState, useEffect } from "react";
-import { Cat, Heart, Info, Paw, Star } from "lucide-react";
-import { motion, AnimatePresence } from "framer-motion";
+import { Cat, Heart, Info, Paw, Star, Moon, Sun, HelpCircle } from "lucide-react";
+import { motion, AnimatePresence, useScroll, useTransform } from "framer-motion";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/components/ui/use-toast";
 import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from "@/components/ui/carousel";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
+import { Progress } from "@/components/ui/progress";
 
 const catBreeds = [
-  { name: "Siamese", description: "Vocal and social cats known for their distinctive color points.", image: "https://upload.wikimedia.org/wikipedia/commons/2/25/Siam_lilacpoint.jpg" },
-  { name: "Persian", description: "Long-haired cats with a sweet, gentle nature.", image: "https://upload.wikimedia.org/wikipedia/commons/1/15/White_Persian_Cat.jpg" },
-  { name: "Maine Coon", description: "Large, friendly cats often referred to as 'gentle giants'.", image: "https://upload.wikimedia.org/wikipedia/commons/5/5f/Maine_Coon_cat_by_Tomitheos.JPG" },
-  { name: "Bengal", description: "Active, playful cats with a wild-looking spotted coat.", image: "https://upload.wikimedia.org/wikipedia/commons/b/ba/Paintedcats_Red_Star_standing.jpg" },
-  { name: "Scottish Fold", description: "Known for their unique folded ears and round faces.", image: "https://upload.wikimedia.org/wikipedia/commons/5/5d/Adult_Scottish_Fold.jpg" },
+  { name: "Siamese", description: "Vocal and social cats known for their distinctive color points.", image: "https://upload.wikimedia.org/wikipedia/commons/2/25/Siam_lilacpoint.jpg", personality: "Talkative, intelligent, and affectionate", origin: "Thailand" },
+  { name: "Persian", description: "Long-haired cats with a sweet, gentle nature.", image: "https://upload.wikimedia.org/wikipedia/commons/1/15/White_Persian_Cat.jpg", personality: "Calm, quiet, and dignified", origin: "Persia (Iran)" },
+  { name: "Maine Coon", description: "Large, friendly cats often referred to as 'gentle giants'.", image: "https://upload.wikimedia.org/wikipedia/commons/5/5f/Maine_Coon_cat_by_Tomitheos.JPG", personality: "Gentle, sociable, and playful", origin: "United States" },
+  { name: "Bengal", description: "Active, playful cats with a wild-looking spotted coat.", image: "https://upload.wikimedia.org/wikipedia/commons/b/ba/Paintedcats_Red_Star_standing.jpg", personality: "Energetic, curious, and athletic", origin: "United States" },
+  { name: "Scottish Fold", description: "Known for their unique folded ears and round faces.", image: "https://upload.wikimedia.org/wikipedia/commons/5/5d/Adult_Scottish_Fold.jpg", personality: "Sweet-tempered, adaptable, and intelligent", origin: "Scotland" },
 ];
 
 const catFacts = [
@@ -26,10 +30,35 @@ const catFacts = [
   "The oldest known pet cat was found in a 9,500-year-old grave on Cyprus.",
 ];
 
+const catCareTips = [
+  { title: "Regular Vet Check-ups", description: "Schedule annual check-ups to keep your cat healthy." },
+  { title: "Proper Nutrition", description: "Feed your cat a balanced diet appropriate for their age and health status." },
+  { title: "Fresh Water", description: "Provide clean, fresh water daily and wash water bowls regularly." },
+  { title: "Litter Box Maintenance", description: "Clean the litter box daily and provide enough boxes for multi-cat households." },
+  { title: "Grooming", description: "Brush your cat regularly to prevent matting and reduce hairballs." },
+  { title: "Mental Stimulation", description: "Provide toys and playtime to keep your cat mentally and physically active." },
+  { title: "Safe Environment", description: "Cat-proof your home to prevent accidents and injuries." },
+  { title: "Affection and Attention", description: "Spend quality time with your cat to strengthen your bond." },
+];
+
+const quizQuestions = [
+  { question: "What is a group of cats called?", options: ["Pack", "Herd", "Clowder", "Flock"], correctAnswer: "Clowder" },
+  { question: "How many hours do cats typically sleep in a day?", options: ["8-10", "12-14", "16-20", "22-23"], correctAnswer: "16-20" },
+  { question: "Which of these is NOT a natural behavior for cats?", options: ["Scratching", "Purring", "Barking", "Kneading"], correctAnswer: "Barking" },
+  { question: "What is the average lifespan of an indoor cat?", options: ["5-7 years", "8-10 years", "12-15 years", "15-20 years"], correctAnswer: "12-15 years" },
+  { question: "Which sense is most highly developed in cats?", options: ["Sight", "Smell", "Hearing", "Taste"], correctAnswer: "Hearing" },
+];
+
 const Index = () => {
   const [likes, setLikes] = useState(0);
   const [currentFactIndex, setCurrentFactIndex] = useState(0);
+  const [isDarkMode, setIsDarkMode] = useState(false);
+  const [quizStarted, setQuizStarted] = useState(false);
+  const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
+  const [score, setScore] = useState(0);
   const { toast } = useToast();
+  const { scrollYProgress } = useScroll();
+  const opacity = useTransform(scrollYProgress, [0, 0.5], [1, 0]);
 
   useEffect(() => {
     const interval = setInterval(() => {
@@ -37,6 +66,10 @@ const Index = () => {
     }, 5000);
     return () => clearInterval(interval);
   }, []);
+
+  useEffect(() => {
+    document.body.classList.toggle("dark", isDarkMode);
+  }, [isDarkMode]);
 
   const handleLike = () => {
     setLikes(likes + 1);
@@ -46,17 +79,58 @@ const Index = () => {
     });
   };
 
+  const handleAnswerSubmit = (answer) => {
+    if (answer === quizQuestions[currentQuestionIndex].correctAnswer) {
+      setScore(score + 1);
+      toast({
+        title: "Correct!",
+        description: "Great job!",
+      });
+    } else {
+      toast({
+        title: "Incorrect",
+        description: `The correct answer was: ${quizQuestions[currentQuestionIndex].correctAnswer}`,
+        variant: "destructive",
+      });
+    }
+
+    if (currentQuestionIndex < quizQuestions.length - 1) {
+      setCurrentQuestionIndex(currentQuestionIndex + 1);
+    } else {
+      setQuizStarted(false);
+      toast({
+        title: "Quiz Completed!",
+        description: `Your score: ${score + (answer === quizQuestions[currentQuestionIndex].correctAnswer ? 1 : 0)}/${quizQuestions.length}`,
+      });
+    }
+  };
+
   return (
-    <div className="min-h-screen bg-gradient-to-b from-purple-100 to-pink-100 p-8">
-      <div className="max-w-5xl mx-auto">
-        <motion.h1 
-          className="text-6xl font-bold mb-8 flex items-center justify-center text-purple-800"
-          initial={{ opacity: 0, y: -50 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5 }}
-        >
-          <Cat className="mr-4 h-16 w-16" /> Feline Fascination
-        </motion.h1>
+    <div className={`min-h-screen ${isDarkMode ? 'bg-gray-900 text-white' : 'bg-gradient-to-b from-purple-100 to-pink-100'} transition-colors duration-300`}>
+      <motion.div
+        className="fixed inset-0 bg-gradient-to-b from-purple-300 to-pink-300 opacity-50 pointer-events-none"
+        style={{ opacity }}
+      />
+      <div className="max-w-5xl mx-auto p-8">
+        <div className="flex justify-between items-center mb-8">
+          <motion.h1 
+            className="text-6xl font-bold flex items-center"
+            initial={{ opacity: 0, y: -50 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5 }}
+          >
+            <Cat className="mr-4 h-16 w-16" /> Feline Fascination
+          </motion.h1>
+          <div className="flex items-center space-x-2">
+            <Sun className="h-6 w-6" />
+            <Switch
+              checked={isDarkMode}
+              onCheckedChange={setIsDarkMode}
+              id="dark-mode-toggle"
+            />
+            <Moon className="h-6 w-6" />
+          </div>
+        </div>
 
         <motion.div
           initial={{ opacity: 0, scale: 0.8 }}
@@ -68,17 +142,17 @@ const Index = () => {
             <CarouselContent>
               {catBreeds.map((breed, index) => (
                 <CarouselItem key={index}>
-                  <div className="p-1">
-                    <Card>
-                      <CardContent className="flex aspect-square items-center justify-center p-6">
-                        <div>
-                          <img src={breed.image} alt={breed.name} className="w-full h-64 object-cover rounded-lg mb-4" />
-                          <h3 className="text-2xl font-semibold mb-2">{breed.name}</h3>
-                          <p className="text-gray-600">{breed.description}</p>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  </div>
+                  <Card className="h-full">
+                    <CardContent className="flex flex-col h-full justify-between p-6">
+                      <div>
+                        <img src={breed.image} alt={breed.name} className="w-full h-64 object-cover rounded-lg mb-4" />
+                        <h3 className="text-2xl font-semibold mb-2">{breed.name}</h3>
+                        <p className="text-gray-600 dark:text-gray-300 mb-2">{breed.description}</p>
+                        <p className="text-sm"><strong>Personality:</strong> {breed.personality}</p>
+                        <p className="text-sm"><strong>Origin:</strong> {breed.origin}</p>
+                      </div>
+                    </CardContent>
+                  </Card>
                 </CarouselItem>
               ))}
             </CarouselContent>
@@ -102,9 +176,10 @@ const Index = () => {
         </Card>
 
         <Tabs defaultValue="characteristics" className="mb-12">
-          <TabsList className="grid w-full grid-cols-2">
+          <TabsList className="grid w-full grid-cols-3">
             <TabsTrigger value="characteristics">Characteristics</TabsTrigger>
             <TabsTrigger value="facts">Fun Facts</TabsTrigger>
+            <TabsTrigger value="care">Care Tips</TabsTrigger>
           </TabsList>
           <TabsContent value="characteristics">
             <Card>
@@ -144,12 +219,36 @@ const Index = () => {
                     animate={{ opacity: 1, y: 0 }}
                     exit={{ opacity: 0, y: -20 }}
                     transition={{ duration: 0.5 }}
-                    className="text-xl text-center p-4 bg-purple-100 rounded-lg"
+                    className="text-xl text-center p-4 bg-purple-100 dark:bg-purple-900 rounded-lg"
                   >
                     <Star className="inline-block mr-2 h-6 w-6 text-yellow-500" />
                     {catFacts[currentFactIndex]}
                   </motion.div>
                 </AnimatePresence>
+              </CardContent>
+            </Card>
+          </TabsContent>
+          <TabsContent value="care">
+            <Card>
+              <CardHeader>
+                <CardTitle>Cat Care Tips</CardTitle>
+                <CardDescription>Essential advice for cat owners</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <ul className="space-y-4">
+                  {catCareTips.map((tip, index) => (
+                    <motion.li
+                      key={index}
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: index * 0.1 }}
+                      className="border-b pb-2"
+                    >
+                      <h3 className="font-semibold">{tip.title}</h3>
+                      <p className="text-sm text-gray-600 dark:text-gray-300">{tip.description}</p>
+                    </motion.li>
+                  ))}
+                </ul>
               </CardContent>
             </Card>
           </TabsContent>
@@ -161,8 +260,37 @@ const Index = () => {
           </Button>
         </div>
 
+        <Card className="mb-12">
+          <CardHeader>
+            <CardTitle className="flex items-center">
+              <HelpCircle className="mr-2 h-6 w-6" /> Cat Quiz
+            </CardTitle>
+            <CardDescription>Test your cat knowledge!</CardDescription>
+          </CardHeader>
+          <CardContent>
+            {!quizStarted ? (
+              <Button onClick={() => { setQuizStarted(true); setCurrentQuestionIndex(0); setScore(0); }}>
+                Start Quiz
+              </Button>
+            ) : (
+              <div>
+                <h3 className="text-xl mb-4">Question {currentQuestionIndex + 1} of {quizQuestions.length}</h3>
+                <p className="mb-4">{quizQuestions[currentQuestionIndex].question}</p>
+                <div className="grid grid-cols-2 gap-4">
+                  {quizQuestions[currentQuestionIndex].options.map((option, index) => (
+                    <Button key={index} onClick={() => handleAnswerSubmit(option)}>
+                      {option}
+                    </Button>
+                  ))}
+                </div>
+                <Progress value={(currentQuestionIndex / quizQuestions.length) * 100} className="mt-4" />
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
         <motion.p 
-          className="text-xl italic text-center mt-8 text-purple-700"
+          className="text-xl italic text-center mt-8 text-purple-700 dark:text-purple-300"
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.5 }}
